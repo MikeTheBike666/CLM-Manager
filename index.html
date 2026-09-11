@@ -19,7 +19,7 @@
   --tint-todo:rgba(242,178,51,.09);
   --tint-check:rgba(79,184,107,.10);
   --tint-land:rgba(88,166,224,.10);
-  --sticky-w:150px;
+  --sticky-w:206px;
   --safe-t:env(safe-area-inset-top,0px);
   --safe-b:env(safe-area-inset-bottom,0px);
 }
@@ -107,6 +107,7 @@ button{background:none;border:0;cursor:pointer}
 }
 .chip.on{background:var(--txt);color:var(--bg);border-color:var(--txt);font-weight:650}
 .chip.on.k-mod{background:var(--red);color:#fff;border-color:var(--red)}
+.hint{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.3}
 
 /* ---------- list ---------- */
 #scroller{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -143,6 +144,17 @@ button{background:none;border:0;cursor:pointer}
 .wt{font-size:15px;font-weight:650;color:var(--amber);display:flex;align-items:baseline;gap:4px}
 .wt small{font-size:10px;color:var(--dim);font-weight:600}
 .wt.changed{color:#FF9E9E}
+.fixmain{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.fixrow{display:flex;align-items:center;gap:8px;height:100%}
+.act{
+  flex:0 0 52px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:800;border:1.5px solid
+}
+.act.go{background:rgba(79,184,107,.18);border-color:var(--green);color:var(--green)}
+.act.ship{background:rgba(88,166,224,.18);border-color:var(--blue);color:var(--blue)}
+.act.done{background:transparent;border-color:var(--line);color:var(--dim);font-size:15px}
+.act:active{transform:scale(.93)}
+.wt.editable{text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
 .wt s{color:var(--dim);font-size:11px;font-weight:500}
 .cols{display:flex;align-items:center;flex:1;min-width:0}
 .c{padding:8px 10px;flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0}
@@ -170,6 +182,10 @@ button{background:none;border:0;cursor:pointer}
   border-radius:14px;padding:18px;max-height:88vh;overflow-y:auto
 }
 .sheet h3,.box h3{margin:0 0 3px;font-size:21px;letter-spacing:-.3px}
+.dhead{display:flex;align-items:flex-start;gap:10px}
+.dhead h3{flex:1}
+.closex{flex:0 0 34px;height:34px;border-radius:9px;background:var(--surface2);
+  border:1px solid var(--line);font-size:15px;color:var(--muted)}
 .subt{color:var(--muted);font-size:12.5px;margin:0 0 14px;word-break:break-all}
 .alert{
   border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:12px;
@@ -230,7 +246,7 @@ table.grid td:active{background:rgba(88,166,224,.22)}
 
 <!-- ============ SESSIONS ============ -->
 <section id="screen-sessions" class="screen on">
-  <div class="brand"><h1>CLM Manager</h1><span>v1.0</span></div>
+  <div class="brand"><h1>CLM Manager</h1><span>v1.1</span></div>
   <p class="lead">Verifica dei pallet in sbarco. Ogni giornata resta separata dalle altre: i dati non si mescolano mai.</p>
   <div id="sesslist"></div>
   <button class="btn btn-primary btn-wide" id="newsess">+ Nuova giornata</button>
@@ -257,6 +273,7 @@ table.grid td:active{background:rgba(88,166,224,.22)}
       <button id="clearsearch" class="hide">✕</button>
     </div>
     <div class="chips" id="chips"></div>
+    <div class="hint" id="hint"></div>
   </div>
   <div id="scroller"><div id="list"></div></div>
   <input type="file" id="f-clm" accept=".xlsx,.xls,.xlsb" multiple class="hide">
@@ -286,6 +303,7 @@ const T = {
   confirmDelete:s=>`Eliminare la giornata «${s}» e tutti i suoi dati?`,
   bandTodo:"DA VERIFICARE", bandCheck:"VERIFICATI", bandLand:"SBARCATI",
   nothing:"Nessun pallet corrisponde alla ricerca.",
+  hintRow:"Tocca ✓ per confermare · tocca il peso per correggerlo · tocca la riga per il dettaglio",
   checked:"Verificato", landed:"Sbarcato", undo:"Stato riportato indietro",
   undoAsk:"Riportare indietro lo stato di questo pallet?",
   weightSaved:"Peso aggiornato",
@@ -557,7 +575,7 @@ async function openSession(id){
   $('#screen-list').classList.add('on');
   query=''; $('#search').value=''; $('#clearsearch').classList.add('hide');
   filters={status:null,category:null,wh:null,fin:null};
-  buildChips(); render();
+  buildChips(); $('#hint').textContent=T.hintRow; render();
 }
 async function reload(){
   ROWS = await dbBySess('rows', SESSION.id);
@@ -678,14 +696,29 @@ function rowEl(r,key){
   const w = effWeight(r), changed = r.weightNew!=null;
 
   const fix=el('div','fix');
+  const fr=el('div','fixrow');
+  const main=el('div','fixmain');
   const cl=el('div','codeline');
   const c=el('div','code'); c.textContent=r.code; cl.appendChild(c);
   if(!hasFile(r)){ const f=el('span','flag nofile'); f.textContent='NO CLM'; cl.appendChild(f); }
   if(r.modified){ const f=el('span','flag upd'); f.textContent='UPD'; cl.appendChild(f); }
-  fix.appendChild(cl);
-  const wt=el('div','wt'+(changed?' changed':''));
+  main.appendChild(cl);
+  const wt=el('div','wt editable'+(changed?' changed':''));
   wt.innerHTML = esc(fmtW(w))+' <small>kg</small>'+(changed?' <s>'+esc(fmtW(r.gross))+'</s>':'');
-  fix.appendChild(wt);
+  wt.onclick = ev => { ev.stopPropagation(); editWeight(r); };
+  main.appendChild(wt);
+  fr.appendChild(main);
+
+  const act=el('button','act '+(r.status==='todo'?'go':r.status==='checked'?'ship':'done'));
+  act.textContent = r.status==='todo' ? '✓' : r.status==='checked' ? '⇥' : '↩';
+  act.onclick = async ev => {
+    ev.stopPropagation();
+    if(r.status==='todo')        { await setState(r,'checked'); toast('Pallet '+r.code+' verificato',1400); }
+    else if(r.status==='checked'){ await setState(r,'landed');  toast('Pallet '+r.code+' sbarcato',1400); }
+    else                         { await undoState(r); }
+  };
+  fr.appendChild(act);
+  fix.appendChild(fr);
   d.appendChild(fix);
 
   const cols=el('div','cols');
@@ -761,7 +794,7 @@ function openDetail(r){
   const diff = (clmW!=null && r.gross!=null) ? (clmW - r.gross) : null;
 
   let html = '<div class="grab"></div>';
-  html += '<h3>Pallet '+esc(r.code)+'</h3>';
+  html += '<div class="dhead"><h3>Pallet '+esc(r.code)+'</h3><button class="closex" id="d-close">✕</button></div>';
   html += '<p class="subt">'+esc(r.clmName||'—')+'</p>';
   if(!file) html += '<div class="alert">'+T.noFileRow+'</div>';
   if(file && !canPatch) html += '<div class="alert warn">'+T.patchNoFmt+'</div>';
@@ -791,8 +824,8 @@ function openDetail(r){
   html += '<textarea id="unote" rows="2" placeholder="Es. imballo danneggiato">'+esc(r.userNote||'')+'</textarea>';
 
   html += '<div class="acts">';
-  if(r.status==='todo')    html += '<button class="btn btn-green btn-wide" id="a-check">✓ Conferma peso</button>';
-  if(r.status==='checked') html += '<button class="btn btn-blue btn-wide" id="a-land">⇥ Segna come sbarcato</button>';
+  if(r.status==='todo')    html += '<button class="btn btn-green btn-wide" id="a-check">✓ Conferma</button>';
+  if(r.status==='checked') html += '<button class="btn btn-blue btn-wide" id="a-land">⇥ Sbarcato</button>';
   if(r.status!=='todo')    html += '<button class="btn btn-ghost btn-wide" id="a-undo">Riporta indietro lo stato</button>';
   html += '<div class="two">';
   html += '<button class="btn" id="a-grid"'+(file?'':' disabled')+'>Apri nell\'app</button>';
@@ -803,6 +836,7 @@ function openDetail(r){
   html += '</div>';
 
   s.innerHTML = html; v.appendChild(s);
+  $('#d-close').onclick = () => closeVeil();
 
   $('#unote').onchange = async e => { r.userNote = e.target.value; await dbPut('rows', r); render(); };
   $('#wtap').onclick = () => editWeight(r);
