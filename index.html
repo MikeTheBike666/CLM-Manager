@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#0F1620">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CLM Manager">
+<link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
+<link rel="icon" href="./icon-192.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>CLM Manager</title>
+<style>
+:root{
+  --bg:#0F1620; --surface:#17202C; --surface2:#1E2A38; --line:#2A3A4C;
+  --txt:#E6EDF5; --muted:#94A6BA; --dim:#6B7F94;
+  --amber:#F2B233; --green:#4FB86B; --blue:#58A6E0; --red:#E5534B;
+  --tint-todo:rgba(242,178,51,.09);
+  --tint-check:rgba(79,184,107,.10);
+  --tint-land:rgba(88,166,224,.10);
+  --sticky-w:150px;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;line-height:1.35;
+  font-variant-numeric:tabular-nums;
+  overscroll-behavior:none;
+}
+button,input,textarea,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.hide{display:none !important}
+
+/* ---------- generic ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:11px 15px;border-radius:9px;background:var(--surface2);
+  border:1px solid var(--line);font-weight:600;font-size:14px;
+}
+.btn:active{transform:scale(.985)}
+.btn-primary{background:var(--amber);color:#1A1206;border-color:var(--amber)}
+.btn-green{background:var(--green);color:#08210F;border-color:var(--green)}
+.btn-blue{background:var(--blue);color:#062033;border-color:var(--blue)}
+.btn-ghost{background:transparent}
+.btn-wide{width:100%}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.row-gap{display:flex;gap:9px;flex-wrap:wrap}
+
+/* ---------- screens ---------- */
+.screen{display:none;flex-direction:column;height:100%}
+.screen.on{display:flex}
+
+/* ---------- sessions ---------- */
+#screen-sessions{padding:calc(var(--safe-t) + 26px) 18px calc(var(--safe-b) + 18px);overflow-y:auto}
+.brand{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.brand h1{font-size:26px;margin:0;letter-spacing:-.4px;font-weight:700}
+.brand span{color:var(--dim);font-size:12px}
+.lead{color:var(--muted);font-size:13.5px;margin:0 0 22px;max-width:60ch}
+.sess{
+  display:block;width:100%;text-align:left;background:var(--surface);
+  border:1px solid var(--line);border-left:4px solid var(--amber);
+  border-radius:11px;padding:14px 15px;margin-bottom:10px;
+}
+.sess b{display:block;font-size:17px;margin-bottom:3px}
+.sess small{color:var(--muted);font-size:12.5px}
+.empty{
+  border:1px dashed var(--line);border-radius:11px;padding:26px 18px;
+  text-align:center;color:var(--muted);font-size:13.5px;margin-bottom:16px
+}
+
+/* ---------- list header ---------- */
+.top{
+  background:var(--surface);border-bottom:1px solid var(--line);
+  padding:calc(var(--safe-t) + 9px) 12px 9px;flex:0 0 auto;
+}
+.top-row{display:flex;align-items:center;gap:9px}
+.top-row h2{font-size:16px;margin:0;flex:1;font-weight:650;letter-spacing:-.2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icobtn{width:36px;height:36px;border-radius:9px;background:var(--surface2);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px}
+.counts{display:flex;gap:6px;margin-top:9px}
+.cnt{
+  flex:1;background:var(--surface2);border:1px solid var(--line);border-radius:8px;
+  padding:6px 4px;text-align:center;line-height:1.15
+}
+.cnt b{display:block;font-size:17px;font-weight:700}
+.cnt small{font-size:10px;color:var(--muted);letter-spacing:.1px}
+.cnt.c-todo b{color:var(--amber)} .cnt.c-check b{color:var(--green)}
+.cnt.c-land b{color:var(--blue)} .cnt.c-mod b{color:var(--red)}
+.searchwrap{position:relative;margin-top:9px}
+#search{
+  width:100%;padding:11px 34px 11px 12px;border-radius:9px;
+  background:var(--bg);border:1px solid var(--line);font-size:16px
+}
+#search::placeholder{color:var(--dim)}
+#clearsearch{position:absolute;right:4px;top:4px;width:32px;height:32px;color:var(--dim);font-size:17px}
+.chips{display:flex;gap:6px;overflow-x:auto;margin-top:9px;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;padding:6px 11px;border-radius:20px;background:var(--surface2);
+  border:1px solid var(--line);font-size:12.5px;color:var(--muted);white-space:nowrap
+}
+.chip.on{background:var(--txt);color:var(--bg);border-color:var(--txt);font-weight:650}
+.chip.on.k-mod{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ---------- list ---------- */
+#scroller{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+#list{min-width:940px}
+.band{
+  position:sticky;left:0;width:100vw;
+  padding:13px 12px 6px;font-size:11.5px;font-weight:700;letter-spacing:.6px;
+  color:var(--muted);background:var(--bg);
+}
+.band i{font-style:normal;color:var(--dim);font-weight:600}
+.r{
+  display:flex;align-items:stretch;border-bottom:1px solid var(--line);
+  min-height:60px;
+}
+.r.todo{background:var(--tint-todo)}
+.r.checked{background:var(--tint-check)}
+.r.landed{background:var(--tint-land)}
+.r:active{filter:brightness(1.25)}
+.fix{
+  position:sticky;left:0;z-index:2;flex:0 0 var(--sticky-w);width:var(--sticky-w);
+  padding:8px 9px 8px 11px;display:flex;flex-direction:column;justify-content:center;gap:2px;
+  border-right:1px solid var(--line);
+}
+.r.todo .fix{background:#1B2029;box-shadow:3px 0 5px rgba(0,0,0,.28)}
+.r.checked .fix{background:#182620;box-shadow:3px 0 5px rgba(0,0,0,.28)}
+.r.landed .fix{background:#16232E;box-shadow:3px 0 5px rgba(0,0,0,.28)}
+.codeline{display:flex;align-items:center;gap:6px}
+.code{font-size:19px;font-weight:700;letter-spacing:-.3px}
+.flag{
+  font-size:9.5px;font-weight:800;padding:2px 5px;border-radius:4px;letter-spacing:.3px
+}
+.flag.nofile{background:var(--red);color:#fff}
+.flag.upd{background:#7A1F1A;color:#FFC9C4;border:1px solid var(--red)}
+.wt{font-size:15px;font-weight:650;color:var(--amber);display:flex;align-items:baseline;gap:4px}
+.wt small{font-size:10px;color:var(--dim);font-weight:600}
+.wt.changed{color:#FF9E9E}
+.wt s{color:var(--dim);font-size:11px;font-weight:500}
+.cols{display:flex;align-items:center;flex:1;min-width:0}
+.c{padding:8px 10px;flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0}
+.c u{font-style:normal;text-decoration:none;font-size:9.5px;color:var(--dim);letter-spacing:.2px}
+.c span{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.w-clm{flex:0 0 250px} .w-cat{flex:0 0 88px} .w-wh{flex:0 0 96px}
+.w-fin{flex:0 0 160px} .w-qty{flex:0 0 62px} .w-unit{flex:0 0 56px}
+.w-date{flex:0 0 96px} .w-val{flex:0 0 96px} .w-ship{flex:0 0 52px} .w-note{flex:0 0 150px}
+.stateicon{align-self:center;padding:0 12px;font-size:17px}
+
+/* ---------- sheet / modal ---------- */
+.veil{
+  position:fixed;inset:0;background:rgba(4,8,12,.66);backdrop-filter:blur(3px);
+  display:flex;align-items:flex-end;z-index:40
+}
+.veil.mid{align-items:center;justify-content:center;padding:16px}
+.sheet{
+  width:100%;max-height:92vh;overflow-y:auto;background:var(--surface);
+  border-radius:16px 16px 0 0;border-top:1px solid var(--line);
+  padding:8px 16px calc(var(--safe-b) + 20px);
+}
+.grab{width:38px;height:4px;border-radius:3px;background:var(--line);margin:6px auto 12px}
+.box{
+  width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:18px;max-height:88vh;overflow-y:auto
+}
+.sheet h3,.box h3{margin:0 0 3px;font-size:21px;letter-spacing:-.3px}
+.subt{color:var(--muted);font-size:12.5px;margin:0 0 14px;word-break:break-all}
+.alert{
+  border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:12px;
+  background:rgba(229,83,75,.13);border:1px solid rgba(229,83,75,.5);color:#FFC4C0
+}
+.alert.warn{background:rgba(242,178,51,.12);border-color:rgba(242,178,51,.45);color:#FFDFA6}
+.weights{display:flex;gap:9px;margin-bottom:13px}
+.wcard{
+  flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 11px
+}
+.wcard u{font-style:normal;text-decoration:none;display:block;font-size:10px;color:var(--dim);margin-bottom:3px}
+.wcard b{font-size:19px;font-weight:700}
+.wcard.tap{border-color:var(--amber)}
+.wcard.tap b{color:var(--amber)}
+.delta{font-size:12px;margin:-6px 0 13px;color:var(--muted)}
+.delta.bad{color:#FF9E9E;font-weight:650}
+.kv{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.kv u{font-style:normal;text-decoration:none;color:var(--dim);flex:0 0 122px;font-size:12.5px}
+.kv span{flex:1;word-break:break-word}
+.lbl{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px}
+textarea,input.txt{
+  width:100%;padding:11px 12px;border-radius:9px;background:var(--bg);
+  border:1px solid var(--line);font-size:16px;resize:vertical
+}
+.acts{display:flex;flex-direction:column;gap:9px;margin-top:16px}
+.acts .two{display:flex;gap:9px}.acts .two>*{flex:1}
+
+/* ---------- grid ---------- */
+#gridwrap{overflow:auto;max-height:60vh;border:1px solid var(--line);border-radius:9px;margin-top:12px}
+table.grid{border-collapse:collapse;font-size:12px;min-width:100%}
+table.grid td,table.grid th{
+  border:1px solid var(--line);padding:5px 7px;white-space:nowrap;
+  max-width:220px;overflow:hidden;text-overflow:ellipsis
+}
+table.grid th{background:var(--surface2);color:var(--dim);font-weight:600;position:sticky;top:0}
+table.grid td.num{text-align:right}
+table.grid td.hit{background:rgba(242,178,51,.2);font-weight:700;color:var(--amber)}
+table.grid td:active{background:rgba(88,166,224,.22)}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--safe-b) + 22px);
+  background:#0A1119;border:1px solid var(--line);color:var(--txt);
+  padding:11px 16px;border-radius:10px;font-size:13.5px;z-index:90;
+  max-width:88vw;text-align:center;box-shadow:0 8px 26px rgba(0,0,0,.5)
+}
+#busy{
+  position:fixed;inset:0;background:rgba(4,8,12,.7);z-index:95;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;font-size:14px
+}
+.spin{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--amber);
+  border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2s}}
+</style>
+</head>
+<body>
+
+<!-- ============ SESSIONS ============ -->
+<section id="screen-sessions" class="screen on">
+  <div class="brand"><h1>CLM Manager</h1><span>v1.0</span></div>
+  <p class="lead">Verifica dei pallet in sbarco. Ogni giornata resta separata dalle altre: i dati non si mescolano mai.</p>
+  <div id="sesslist"></div>
+  <button class="btn btn-primary btn-wide" id="newsess">+ Nuova giornata</button>
+  <input type="file" id="f-chart" accept=".xlsx,.xls,.xlsb" class="hide">
+</section>
+
+<!-- ============ LIST ============ -->
+<section id="screen-list" class="screen">
+  <div class="top">
+    <div class="top-row">
+      <button class="icobtn" id="back">‹</button>
+      <h2 id="sesstitle"></h2>
+      <button class="icobtn" id="addclm" title="Carica CLM">＋</button>
+      <button class="icobtn" id="exportall" title="Esporta modificati">↓</button>
+    </div>
+    <div class="counts">
+      <div class="cnt c-todo"><b id="n-todo">0</b><small>DA VERIFICARE</small></div>
+      <div class="cnt c-check"><b id="n-check">0</b><small>VERIFICATI</small></div>
+      <div class="cnt c-land"><b id="n-land">0</b><small>SBARCATI</small></div>
+      <div class="cnt c-mod"><b id="n-mod">0</b><small>MODIFICATI</small></div>
+    </div>
+    <div class="searchwrap">
+      <input id="search" type="search" placeholder="Cerca: numero, nome, reparto, destinazione, peso" autocomplete="off">
+      <button id="clearsearch" class="hide">✕</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div id="scroller"><div id="list"></div></div>
+  <input type="file" id="f-clm" accept=".xlsx,.xls,.xlsb" multiple class="hide">
+</section>
+
+<div id="toast" class="hide"></div>
+<div id="busy" class="hide"><div class="spin"></div><span id="busytxt">Attendere…</span></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+/* =====================================================================
+   CLM Check — verifica pallet in sbarco
+   Tutto il testo dell'interfaccia sta in T: per la versione inglese
+   basta duplicare questo oggetto e cambiare la lingua attiva.
+   ===================================================================== */
+const T = {
+  noSess:"Nessuna giornata caricata. Comincia importando il landing chart del giorno.",
+  pickChart:"Scegli il landing chart della giornata",
+  chartBad:"Nel file non trovo la colonna «Code number». È il landing chart giusto?",
+  chartEmpty:"Il landing chart non contiene righe pallet.",
+  sessName:"Nome della giornata",
+  imported:n=>`${n} righe caricate. Ora carica i CLM con ＋`,
+  clmLinked:(a,b)=>`${a} CLM agganciati, ${b} già presenti aggiornati`,
+  orphans:l=>`File senza riga corrispondente nel chart: ${l}`,
+  noFileRow:"CLM non caricato per questo pallet",
+  confirmDelete:s=>`Eliminare la giornata «${s}» e tutti i suoi dati?`,
+  bandTodo:"DA VERIFICARE", bandCheck:"VERIFICATI", bandLand:"SBARCATI",
+  nothing:"Nessun pallet corrisponde alla ricerca.",
+  checked:"Verificato", landed:"Sbarcato", undo:"Stato riportato indietro",
+  undoAsk:"Riportare indietro lo stato di questo pallet?",
+  weightSaved:"Peso aggiornato",
+  patchOk:"Copia modificata pronta all'export",
+  patchNoCell:"Nel CLM non trovo la cella del peso lordo: correggilo aprendo il file in Excel.",
+  patchNoFmt:"Formato .xls e .xlsb non modificabili dall'app. Apri in Excel e correggi a mano.",
+  noMods:"Nessun file modificato da esportare.",
+  zipping:"Preparo l'archivio…",
+  reading:"Leggo i file…"
+};
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const el = (t,c) => { const e=document.createElement(t); if(c) e.className=c; return e; };
+let toastTimer;
+function toast(msg,ms=2600){
+  const t=$('#toast'); t.textContent=msg; t.classList.remove('hide');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.add('hide'),ms);
+}
+function busy(on,txt){ $('#busytxt').textContent=txt||T.reading; $('#busy').classList.toggle('hide',!on); }
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = v => (typeof v==='number' && isFinite(v)) ? v : null;
+function fmtW(v){ return v==null ? '—' : (Math.round(v*1000)/1000).toLocaleString('it-IT'); }
+function fmtDate(v){
+  if(!v) return '';
+  const d = v instanceof Date ? v : new Date(v);
+  if(isNaN(d)) return String(v);
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+}
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+/* ---------- IndexedDB ---------- */
+let db;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const rq = indexedDB.open('clmcheck',1);
+    rq.onupgradeneeded = e => {
+      const d = e.target.result;
+      d.createObjectStore('sessions',{keyPath:'id'});
+      const r = d.createObjectStore('rows',{keyPath:'id'});
+      r.createIndex('bySess','sessionId');
+      const f = d.createObjectStore('files',{keyPath:'id'});
+      f.createIndex('bySess','sessionId');
+      const m = d.createObjectStore('mods',{keyPath:'id'});
+      m.createIndex('bySess','sessionId');
+    };
+    rq.onsuccess = e => { db=e.target.result; res(); };
+    rq.onerror = e => rej(e.target.error);
+  });
+}
+const tx = (store,mode='readonly') => db.transaction(store,mode).objectStore(store);
+const dbPut = (s,v) => new Promise((res,rej)=>{ const r=tx(s,'readwrite').put(v); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+const dbGet = (s,k) => new Promise((res,rej)=>{ const r=tx(s).get(k); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+const dbAll = s => new Promise((res,rej)=>{ const r=tx(s).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); });
+const dbBySess = (s,id) => new Promise((res,rej)=>{ const r=tx(s).index('bySess').getAll(id); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); });
+const dbDel = (s,k) => new Promise((res,rej)=>{ const r=tx(s,'readwrite').delete(k); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+
+/* ---------- state ---------- */
+let SESSION=null, ROWS=[], FILEIDX=new Set(), MODIDX=new Set();
+let query='', filters={status:null, category:null, wh:null, fin:null};
+
+/* =====================================================================
+   PARSING — landing chart
+   ===================================================================== */
+const HEAD = [
+  ['code','code number'],['ship','ship'],['clmName','clm file name'],['po','po'],
+  ['category','category'],['wh','wh destination'],['fin','final destination'],
+  ['qty','q.ty'],['unit','unit'],['gross','gross weight'],['value','total value'],
+  ['taric','taric'],['origin','country of origin'],['offdate','offloading date'],
+  ['adr','adr'],['note','note']
+];
+function parseChart(buf){
+  const wb = XLSX.read(buf,{type:'array',cellDates:true});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const aoa = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  let hi=-1;
+  for(let i=0;i<Math.min(aoa.length,25);i++){
+    if((aoa[i]||[]).some(c=>typeof c==='string' && c.trim().toLowerCase()==='code number')){ hi=i; break; }
+  }
+  if(hi<0) throw new Error(T.chartBad);
+  const heads = (aoa[hi]||[]).map(c=>String(c==null?'':c).trim().toLowerCase());
+  const map={};
+  HEAD.forEach(([key,needle])=>{
+    const j = heads.findIndex(h=>h===needle);
+    map[key] = j>=0 ? j : heads.findIndex(h=>h.includes(needle));
+  });
+  const out=[];
+  for(let i=hi+1;i<aoa.length;i++){
+    const r=aoa[i]||[];
+    const code = r[map.code];
+    if(code==null || String(code).trim()==='') continue;
+    const rec={};
+    HEAD.forEach(([key])=>{ rec[key] = map[key]>=0 ? r[map[key]] : null; });
+    rec.code = String(rec.code).trim();
+    rec.gross = num(rec.gross);
+    out.push(rec);
+  }
+  return out;
+}
+
+/* =====================================================================
+   PARSING — CLM: individua il peso lordo cercando l'etichetta, non la cella
+   ===================================================================== */
+function findGross(ws){
+  if(!ws || !ws['!ref']) return null;
+  const rg = XLSX.utils.decode_range(ws['!ref']);
+  for(let R=rg.s.r; R<=rg.e.r; R++){
+    for(let C=rg.s.c; C<=rg.e.c; C++){
+      const cell = ws[XLSX.utils.encode_cell({r:R,c:C})];
+      if(!cell || typeof cell.v!=='string') continue;
+      const t = cell.v.toUpperCase();
+      if(!t.includes('GROSS')) continue;
+      if(t.includes('NET')) continue;
+      for(let c2=C+1; c2<=Math.min(C+10, rg.e.c); c2++){
+        const ref = XLSX.utils.encode_cell({r:R,c:c2});
+        const c2c = ws[ref];
+        if(c2c && typeof c2c.v==='number'){
+          return {ref, value:c2c.v, label:cell.v.trim()};
+        }
+      }
+    }
+  }
+  return null;
+}
+function readCLM(buf){
+  const wb = XLSX.read(buf,{type:'array',cellDates:true});
+  const name = wb.SheetNames[0];
+  const g = findGross(wb.Sheets[name]);
+  return { sheet:name, grossRef:g?g.ref:null, grossVal:g?g.value:null, grossLabel:g?g.label:null };
+}
+
+/* =====================================================================
+   PATCH xlsx — modifica chirurgica dentro una copia, formato preservato
+   ===================================================================== */
+async function sheetXmlPath(zip, sheetName){
+  const wbx = await zip.file('xl/workbook.xml').async('string');
+  const rels = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+  const sheets = wbx.match(/<sheet[^>]*>/g)||[];
+  const unesc = s => String(s).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");
+  for(const s of sheets){
+    const nm = (s.match(/name="([^"]*)"/)||[])[1];
+    const rid = (s.match(/r:id="([^"]*)"/)||[])[1];
+    if(nm==null || unesc(nm)!==sheetName) continue;
+    const rel = rels.match(new RegExp('<Relationship[^>]*Id="'+rid+'"[^>]*>'));
+    if(!rel) break;
+    let tgt = (rel[0].match(/Target="([^"]*)"/)||[])[1] || '';
+    tgt = tgt.replace(/^\.\//,'');
+    if(tgt.startsWith('/')) return tgt.slice(1);
+    return tgt.startsWith('xl/') ? tgt : 'xl/'+tgt;
+  }
+  return 'xl/worksheets/sheet1.xml';
+}
+async function patchCell(buf, sheetName, ref, value){
+  const zip = await JSZip.loadAsync(buf);
+  const path = await sheetXmlPath(zip, sheetName);
+  const file = zip.file(path);
+  if(!file) throw new Error('sheet-missing');
+  let xml = await file.async('string');
+
+  const re = new RegExp('<c r="'+ref+'"((?:(?!\\/?>)[\\s\\S])*?)(\\/>|>[\\s\\S]*?<\\/c>)');
+  const m = xml.match(re);
+  if(!m) throw new Error('cell-missing');
+
+  const sAttr = (m[1].match(/\ss="\d+"/)||[''])[0];
+  const hadFormula = /<f[\s>]/.test(m[2]);
+  const isNum = typeof value==='number' && isFinite(value);
+  const inner = isNum
+    ? '<v>'+value+'</v>'
+    : '<is><t xml:space="preserve">'+esc(value)+'</t></is>';
+  const tAttr = isNum ? '' : ' t="inlineStr"';
+  xml = xml.replace(re, '<c r="'+ref+'"'+sAttr+tAttr+'>'+inner+'</c>');
+  zip.file(path, xml);
+
+  if(hadFormula && zip.file('xl/calcChain.xml')){
+    zip.remove('xl/calcChain.xml');
+    const ctPath='[Content_Types].xml';
+    if(zip.file(ctPath)){
+      let ct = await zip.file(ctPath).async('string');
+      ct = ct.replace(/<Override[^>]*calcChain\.xml"[^>]*\/>/,'');
+      zip.file(ctPath, ct);
+    }
+  }
+  // forza il ricalcolo all'apertura, così i totali collegati si aggiornano
+  let wbx = await zip.file('xl/workbook.xml').async('string');
+  if(/<calcPr[^>]*\/>/.test(wbx)) wbx = wbx.replace(/<calcPr[^>]*\/>/,'<calcPr calcId="0" fullCalcOnLoad="1"/>');
+  else wbx = wbx.replace('</workbook>','<calcPr calcId="0" fullCalcOnLoad="1"/></workbook>');
+  zip.file('xl/workbook.xml', wbx);
+
+  return await zip.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
+}
+const updName = n => n.replace(/(\.[^.]+)$/, ' (UPDATED)$1');
+
+/* ---------- download ---------- */
+function download(buf, name, mime){
+  const blob = buf instanceof Blob ? buf : new Blob([buf],{type:mime||'application/octet-stream'});
+  const url = URL.createObjectURL(blob);
+  const a = el('a'); a.href=url; a.download=name; document.body.appendChild(a);
+  a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+
+/* =====================================================================
+   SESSIONS
+   ===================================================================== */
+async function renderSessions(){
+  const list = await dbAll('sessions');
+  list.sort((a,b)=>b.createdAt-a.createdAt);
+  const box = $('#sesslist'); box.innerHTML='';
+  if(!list.length){ const e=el('div','empty'); e.textContent=T.noSess; box.appendChild(e); return; }
+  for(const s of list){
+    const rows = await dbBySess('rows', s.id);
+    const done = rows.filter(r=>r.status!=='todo').length;
+    const b = el('button','sess');
+    b.innerHTML = '<b>'+esc(s.label)+'</b><small>'+rows.length+' pallet · '+done+' lavorati</small>';
+    b.onclick = () => openSession(s.id);
+    let press;
+    const askDel = async ev => {
+      ev.preventDefault();
+      if(!confirm(T.confirmDelete(s.label))) return;
+      for(const st of ['rows','files','mods']){
+        const items = await dbBySess(st, s.id);
+        for(const it of items) await dbDel(st, it.id);
+      }
+      await dbDel('sessions', s.id); renderSessions();
+    };
+    b.oncontextmenu = askDel;
+    b.ontouchstart = () => { press = setTimeout(()=>askDel(new Event('x')), 650); };
+    b.ontouchend = b.ontouchmove = () => clearTimeout(press);
+    box.appendChild(b);
+  }
+}
+$('#newsess').onclick = () => $('#f-chart').click();
+$('#f-chart').onchange = async e => {
+  const f = e.target.files[0]; e.target.value='';
+  if(!f) return;
+  busy(true);
+  try{
+    const recs = parseChart(await f.arrayBuffer());
+    if(!recs.length) throw new Error(T.chartEmpty);
+    const d = recs.find(r=>r.offdate)?.offdate;
+    const suggested = (fmtDate(d) || f.name.replace(/\.[^.]+$/,''));
+    busy(false);
+    const label = prompt(T.sessName, suggested) || suggested;
+    busy(true);
+    const id = uid();
+    await dbPut('sessions',{id, label, createdAt:Date.now(), orphans:[]});
+    let i=0;
+    for(const r of recs){
+      await dbPut('rows', Object.assign({}, r, {
+        id:id+'::'+r.code, sessionId:id, seq:i++,
+        status:'todo', order:0, checkedAt:null, landedAt:null,
+        weightNew:null, modified:false, userNote:'',
+        sheet:null, grossRef:null, grossVal:null, fileName:null, fileExt:null
+      }));
+    }
+    busy(false);
+    toast(T.imported(recs.length));
+    openSession(id);
+  }catch(err){ busy(false); alert(err.message||String(err)); }
+};
+
+/* =====================================================================
+   OPEN SESSION
+   ===================================================================== */
+async function openSession(id){
+  SESSION = await dbGet('sessions', id);
+  await reload();
+  $('#sesstitle').textContent = SESSION.label;
+  $('#screen-sessions').classList.remove('on');
+  $('#screen-list').classList.add('on');
+  query=''; $('#search').value=''; $('#clearsearch').classList.add('hide');
+  filters={status:null,category:null,wh:null,fin:null};
+  buildChips(); render();
+}
+async function reload(){
+  ROWS = await dbBySess('rows', SESSION.id);
+  ROWS.sort((a,b)=>a.seq-b.seq);
+  FILEIDX = new Set((await dbBySess('files', SESSION.id)).map(f=>f.id));
+  MODIDX  = new Set((await dbBySess('mods',  SESSION.id)).map(m=>m.id));
+}
+$('#back').onclick = () => {
+  $('#screen-list').classList.remove('on');
+  $('#screen-sessions').classList.add('on');
+  renderSessions();
+};
+
+/* =====================================================================
+   IMPORT CLM
+   ===================================================================== */
+$('#addclm').onclick = () => $('#f-clm').click();
+$('#f-clm').onchange = async e => {
+  const files=[...e.target.files]; e.target.value='';
+  if(!files.length) return;
+  busy(true, T.reading);
+  let linked=0, updated=0; const orphans=[];
+  for(const f of files){
+    const code = (f.name.match(/^(\d{2,6})/)||[])[1];
+    const row = code ? ROWS.find(r=>r.code===String(Number(code)) || r.code===code) : null;
+    if(!row){ orphans.push(f.name); continue; }
+    const buf = await f.arrayBuffer();
+    const ext = (f.name.split('.').pop()||'').toLowerCase();
+    let info = {sheet:null,grossRef:null,grossVal:null};
+    try{ info = readCLM(buf); }catch(_){}
+    const had = FILEIDX.has(SESSION.id+'::'+row.code);
+    await dbPut('files',{id:SESSION.id+'::'+row.code, sessionId:SESSION.id, code:row.code,
+                         name:f.name, ext, buf});
+    Object.assign(row,{fileName:f.name, fileExt:ext, sheet:info.sheet,
+                       grossRef:info.grossRef, grossVal:info.grossVal});
+    await dbPut('rows', row);
+    had ? updated++ : linked++;
+  }
+  SESSION.orphans = orphans;
+  await dbPut('sessions', SESSION);
+  await reload(); buildChips(); render(); busy(false);
+  toast(T.clmLinked(linked, updated));
+  if(orphans.length) setTimeout(()=>alert(T.orphans(orphans.join(', '))), 600);
+};
+
+/* =====================================================================
+   FILTRI
+   ===================================================================== */
+function buildChips(){
+  const wrap=$('#chips'); wrap.innerHTML='';
+  const uniq = k => [...new Set(ROWS.map(r=>r[k]).filter(v=>v!=null && String(v).trim()!==''))].map(String);
+  const add = (label,on,fn,cls) => {
+    const c=el('button','chip'+(on?' on':'')+(cls?' '+cls:'')); c.textContent=label; c.onclick=fn; wrap.appendChild(c);
+  };
+  add('Tutti', !filters.status && !filters.category && !filters.wh && !filters.fin,
+      ()=>{filters={status:null,category:null,wh:null,fin:null}; buildChips(); render();});
+  add('Da verificare', filters.status==='todo', ()=>tog('status','todo'));
+  add('Verificati', filters.status==='checked', ()=>tog('status','checked'));
+  add('Sbarcati', filters.status==='landed', ()=>tog('status','landed'));
+  add('Modificati', filters.status==='mod', ()=>tog('status','mod'), 'k-mod');
+  add('Senza CLM', filters.status==='nofile', ()=>tog('status','nofile'));
+  uniq('category').forEach(v=>add(v, filters.category===v, ()=>tog('category',v)));
+  uniq('wh').forEach(v=>add(v, filters.wh===v, ()=>tog('wh',v)));
+  uniq('fin').forEach(v=>add(v, filters.fin===v, ()=>tog('fin',v)));
+}
+function tog(k,v){ filters[k] = filters[k]===v ? null : v; buildChips(); render(); }
+
+$('#search').oninput = e => {
+  query = e.target.value.trim().toLowerCase();
+  $('#clearsearch').classList.toggle('hide', !query);
+  render();
+};
+$('#clearsearch').onclick = () => { query=''; $('#search').value=''; $('#clearsearch').classList.add('hide'); render(); };
+
+function effWeight(r){ return r.weightNew!=null ? r.weightNew : r.gross; }
+function hasFile(r){ return FILEIDX.has(SESSION.id+'::'+r.code); }
+
+function match(r){
+  if(filters.category && String(r.category)!==filters.category) return false;
+  if(filters.wh && String(r.wh)!==filters.wh) return false;
+  if(filters.fin && String(r.fin)!==filters.fin) return false;
+  if(filters.status==='mod' && !r.modified) return false;
+  if(filters.status==='nofile' && hasFile(r)) return false;
+  if(['todo','checked','landed'].includes(filters.status) && r.status!==filters.status) return false;
+  if(!query) return true;
+  const hay = [r.code, r.clmName, r.category, r.wh, r.fin, r.unit, r.ship, r.note, r.userNote,
+               fmtW(effWeight(r)), fmtW(r.gross), fmtDate(r.offdate)].join(' ').toLowerCase();
+  return hay.includes(query);
+}
+
+/* =====================================================================
+   RENDER LISTA
+   ===================================================================== */
+function render(){
+  const list=$('#list'); list.innerHTML='';
+  const all = ROWS.filter(match);
+  $('#n-todo').textContent  = ROWS.filter(r=>r.status==='todo').length;
+  $('#n-check').textContent = ROWS.filter(r=>r.status==='checked').length;
+  $('#n-land').textContent  = ROWS.filter(r=>r.status==='landed').length;
+  $('#n-mod').textContent   = ROWS.filter(r=>r.modified).length;
+
+  if(!all.length){ const e=el('div','empty'); e.style.margin='24px 12px'; e.textContent=T.nothing; list.appendChild(e); return; }
+
+  const bands = [
+    ['todo',  T.bandTodo,  all.filter(r=>r.status==='todo').sort((a,b)=>a.seq-b.seq)],
+    ['checked',T.bandCheck, all.filter(r=>r.status==='checked').sort((a,b)=>a.order-b.order)],
+    ['landed',T.bandLand,  all.filter(r=>r.status==='landed').sort((a,b)=>a.order-b.order)]
+  ];
+  for(const [key,label,items] of bands){
+    if(!items.length) continue;
+    const h=el('div','band'); h.innerHTML = label+' <i>· '+items.length+'</i>';
+    list.appendChild(h);
+    items.forEach(r=>list.appendChild(rowEl(r,key)));
+  }
+}
+function rowEl(r,key){
+  const d=el('div','r '+key);
+  const w = effWeight(r), changed = r.weightNew!=null;
+
+  const fix=el('div','fix');
+  const cl=el('div','codeline');
+  const c=el('div','code'); c.textContent=r.code; cl.appendChild(c);
+  if(!hasFile(r)){ const f=el('span','flag nofile'); f.textContent='NO CLM'; cl.appendChild(f); }
+  if(r.modified){ const f=el('span','flag upd'); f.textContent='UPD'; cl.appendChild(f); }
+  fix.appendChild(cl);
+  const wt=el('div','wt'+(changed?' changed':''));
+  wt.innerHTML = esc(fmtW(w))+' <small>kg</small>'+(changed?' <s>'+esc(fmtW(r.gross))+'</s>':'');
+  fix.appendChild(wt);
+  d.appendChild(fix);
+
+  const cols=el('div','cols');
+  const cell=(cls,lab,val)=>{
+    const x=el('div','c '+cls);
+    x.innerHTML='<u>'+esc(lab)+'</u><span>'+esc(val==null||val===''?'—':val)+'</span>';
+    cols.appendChild(x);
+  };
+  cell('w-clm','CLM FILE NAME', r.clmName);
+  cell('w-cat','CATEGORY', r.category);
+  cell('w-wh','WH DEST.', r.wh);
+  cell('w-fin','FINAL DESTINATION', r.fin);
+  cell('w-qty','Q.TY', r.qty);
+  cell('w-unit','UNIT', r.unit);
+  cell('w-date','SBARCO', fmtDate(r.offdate));
+  cell('w-val','VALORE', r.value==null?'':Number(r.value).toLocaleString('it-IT'));
+  cell('w-ship','SHIP', r.ship);
+  cell('w-note','NOTE', [r.note, r.userNote].filter(Boolean).join(' · '));
+  d.appendChild(cols);
+
+  const ic=el('div','stateicon');
+  ic.textContent = r.status==='checked' ? '✓' : r.status==='landed' ? '⇥' : '';
+  ic.style.color = r.status==='checked' ? 'var(--green)' : 'var(--blue)';
+  d.appendChild(ic);
+
+  let press, moved=false;
+  d.addEventListener('touchstart',()=>{ moved=false; press=setTimeout(()=>{ moved=true; undoState(r); },600); },{passive:true});
+  d.addEventListener('touchmove',()=>{ moved=true; clearTimeout(press); },{passive:true});
+  d.addEventListener('touchend',()=>{ clearTimeout(press); });
+  d.onclick = () => { if(!moved) openDetail(r); };
+  d.oncontextmenu = e => { e.preventDefault(); undoState(r); };
+  return d;
+}
+
+/* =====================================================================
+   STATI
+   ===================================================================== */
+async function setState(r, status){
+  r.status = status;
+  r.order = Date.now();
+  if(status==='checked') r.checkedAt = Date.now();
+  if(status==='landed')  r.landedAt  = Date.now();
+  await dbPut('rows', r);
+  await reload(); render();
+}
+async function undoState(r){
+  if(r.status==='todo') return;
+  if(!confirm(T.undoAsk)) return;
+  if(r.status==='landed'){ r.status='checked'; r.landedAt=null; }
+  else { r.status='todo'; r.checkedAt=null; }
+  await dbPut('rows', r); await reload(); render();
+  toast(T.undo);
+}
+
+/* =====================================================================
+   DETTAGLIO
+   ===================================================================== */
+function closeVeil(){ document.querySelectorAll('.veil').forEach(v=>v.remove()); }
+function veil(mid){
+  closeVeil();
+  const v=el('div','veil'+(mid?' mid':''));
+  v.onclick = e => { if(e.target===v) closeVeil(); };
+  document.body.appendChild(v);
+  return v;
+}
+function openDetail(r){
+  const v=veil();
+  const s=el('div','sheet');
+  const file = hasFile(r);
+  const canPatch = file && r.fileExt==='xlsx';
+  const w = effWeight(r);
+  const clmW = r.grossVal;
+  const diff = (clmW!=null && r.gross!=null) ? (clmW - r.gross) : null;
+
+  let html = '<div class="grab"></div>';
+  html += '<h3>Pallet '+esc(r.code)+'</h3>';
+  html += '<p class="subt">'+esc(r.clmName||'—')+'</p>';
+  if(!file) html += '<div class="alert">'+T.noFileRow+'</div>';
+  if(file && !canPatch) html += '<div class="alert warn">'+T.patchNoFmt+'</div>';
+
+  html += '<div class="weights">';
+  html += '<div class="wcard"><u>PESO LANDING CHART</u><b>'+esc(fmtW(r.gross))+' kg</b></div>';
+  html += '<div class="wcard"><u>PESO DENTRO IL CLM</u><b>'+(clmW==null?'non rilevato':esc(fmtW(clmW))+' kg')+'</b></div>';
+  html += '</div>';
+  if(diff!=null && Math.abs(diff)>0.0001)
+    html += '<p class="delta bad">Differenza chart / CLM: '+(diff>0?'+':'')+esc(fmtW(diff))+' kg</p>';
+
+  html += '<div class="weights"><div class="wcard tap" id="wtap"><u>PESO REALE RILEVATO — tocca per correggere</u><b>'
+        + esc(fmtW(w))+' kg</b></div></div>';
+
+  const kv=(k,val)=>'<div class="kv"><u>'+esc(k)+'</u><span>'+esc(val==null||val===''?'—':val)+'</span></div>';
+  html += kv('Category', r.category) + kv('WH destination', r.wh) + kv('Final destination', r.fin)
+        + kv('Q.ty', r.qty) + kv('Unit', r.unit) + kv('Data sbarco', fmtDate(r.offdate))
+        + kv('Total value', r.value) + kv('Ship', r.ship) + kv('PO', r.po)
+        + kv('TARIC', r.taric) + kv('Country of origin', r.origin) + kv('ADR', r.adr)
+        + kv('Note dal chart', r.note)
+        + kv('File CLM', r.fileName || '—')
+        + kv('Peso letto in', r.grossRef ? (r.sheet+'!'+r.grossRef) : '—')
+        + kv('Verificato', r.checkedAt ? new Date(r.checkedAt).toLocaleString('it-IT') : '—')
+        + kv('Sbarcato', r.landedAt ? new Date(r.landedAt).toLocaleString('it-IT') : '—');
+
+  html += '<label class="lbl" for="unote">Note tue su questo pallet</label>';
+  html += '<textarea id="unote" rows="2" placeholder="Es. imballo danneggiato">'+esc(r.userNote||'')+'</textarea>';
+
+  html += '<div class="acts">';
+  if(r.status==='todo')    html += '<button class="btn btn-green btn-wide" id="a-check">✓ Conferma peso</button>';
+  if(r.status==='checked') html += '<button class="btn btn-blue btn-wide" id="a-land">⇥ Segna come sbarcato</button>';
+  if(r.status!=='todo')    html += '<button class="btn btn-ghost btn-wide" id="a-undo">Riporta indietro lo stato</button>';
+  html += '<div class="two">';
+  html += '<button class="btn" id="a-grid"'+(file?'':' disabled')+'>Apri nell\'app</button>';
+  html += '<button class="btn" id="a-excel"'+(file?'':' disabled')+'>Apri in Excel</button>';
+  html += '</div>';
+  if(MODIDX.has(SESSION.id+'::'+r.code))
+    html += '<button class="btn btn-wide" id="a-exp1">↓ Esporta questo file modificato</button>';
+  html += '</div>';
+
+  s.innerHTML = html; v.appendChild(s);
+
+  $('#unote').onchange = async e => { r.userNote = e.target.value; await dbPut('rows', r); render(); };
+  $('#wtap').onclick = () => editWeight(r);
+  const on=(id,fn)=>{ const b=$('#'+id); if(b) b.onclick=fn; };
+  on('a-check', async()=>{ closeVeil(); await setState(r,'checked'); toast(T.checked); });
+  on('a-land',  async()=>{ closeVeil(); await setState(r,'landed');  toast(T.landed); });
+  on('a-undo',  async()=>{ closeVeil(); await undoState(r); });
+  on('a-grid',  ()=>openGrid(r));
+  on('a-excel', async()=>{
+    const f = await dbGet('files', SESSION.id+'::'+r.code);
+    const mod = await dbGet('mods', SESSION.id+'::'+r.code);
+    download((mod||f).buf, (mod||f).name);
+  });
+  on('a-exp1', async()=>{ const m=await dbGet('mods', SESSION.id+'::'+r.code); download(m.buf, m.name); });
+}
+
+/* ---------- modifica peso ---------- */
+function editWeight(r){
+  const v=veil(true);
+  const b=el('div','box');
+  b.innerHTML =
+    '<h3>Peso pallet '+esc(r.code)+'</h3>'+
+    '<p class="subt">Il valore originale resta sempre registrato. L\'originale del file non viene mai toccato.</p>'+
+    '<div class="kv"><u>Chart</u><span>'+esc(fmtW(r.gross))+' kg</span></div>'+
+    '<div class="kv"><u>Dentro il CLM</u><span>'+(r.grossVal==null?'non rilevato':esc(fmtW(r.grossVal))+' kg')+'</span></div>'+
+    '<label class="lbl" for="wnew">Peso reale rilevato (kg)</label>'+
+    '<input class="txt" id="wnew" type="number" inputmode="decimal" step="0.01" value="'+(effWeight(r)??'')+'">'+
+    '<div class="acts"><div class="two">'+
+    '<button class="btn btn-ghost" id="w-cancel">Annulla</button>'+
+    '<button class="btn btn-primary" id="w-save">Salva peso</button>'+
+    '</div></div>';
+  v.appendChild(b);
+  setTimeout(()=>{ const i=$('#wnew'); i.focus(); i.select(); },60);
+  $('#w-cancel').onclick = () => openDetail(r);
+  $('#w-save').onclick = async () => {
+    const val = parseFloat($('#wnew').value.replace(',','.'));
+    if(!isFinite(val)){ toast('Valore non valido'); return; }
+    r.weightNew = val; r.modified = true;
+    await dbPut('rows', r);
+    closeVeil(); busy(true,'Aggiorno il file…');
+    let msg = T.weightSaved;
+    const f = await dbGet('files', SESSION.id+'::'+r.code);
+    if(f && f.ext==='xlsx' && r.grossRef){
+      try{
+        const src = (await dbGet('mods', SESSION.id+'::'+r.code))?.buf || f.buf;
+        const out = await patchCell(src, r.sheet, r.grossRef, val);
+        await dbPut('mods',{id:SESSION.id+'::'+r.code, sessionId:SESSION.id, code:r.code,
+                            name:updName(f.name), buf:out});
+        msg = T.weightSaved+' · '+T.patchOk;
+      }catch(err){ msg = T.weightSaved+' · '+(err.message==='cell-missing'?T.patchNoCell:'Il file non è stato modificato'); }
+    } else if(f && f.ext!=='xlsx'){ msg = T.weightSaved+' · '+T.patchNoFmt; }
+    else if(f && !r.grossRef){ msg = T.weightSaved+' · '+T.patchNoCell; }
+    await reload(); render(); busy(false);
+    toast(msg, 4200);
+  };
+}
+
+/* ---------- griglia CLM ---------- */
+async function openGrid(r){
+  busy(true);
+  const f = await dbGet('files', SESSION.id+'::'+r.code);
+  const mod = await dbGet('mods', SESSION.id+'::'+r.code);
+  const src = mod ? mod.buf : f.buf;
+  let wb;
+  try{ wb = XLSX.read(src,{type:'array',cellDates:true}); }
+  catch(err){ busy(false); alert('Impossibile leggere questo file.'); return; }
+  const name = wb.SheetNames[0], ws = wb.Sheets[name];
+  const rg = XLSX.utils.decode_range(ws['!ref']||'A1');
+  const maxC = Math.min(rg.e.c, 25), maxR = Math.min(rg.e.r, 200);
+  busy(false);
+
+  const v=veil(true); const b=el('div','box'); b.style.maxWidth='96vw';
+  let h = '<h3>CLM '+esc(r.code)+'</h3><p class="subt">'+esc((mod||f).name)+' · foglio '+esc(name)+
+          '<br>Tocca una cella per modificarla. Si scrive sempre su una copia.</p>';
+  h += '<div id="gridwrap"><table class="grid"><thead><tr><th></th>';
+  for(let C=rg.s.c;C<=maxC;C++) h += '<th>'+XLSX.utils.encode_col(C)+'</th>';
+  h += '</tr></thead><tbody>';
+  for(let R=rg.s.r;R<=maxR;R++){
+    h += '<tr><th>'+(R+1)+'</th>';
+    for(let C=rg.s.c;C<=maxC;C++){
+      const ref = XLSX.utils.encode_cell({r:R,c:C});
+      const cell = ws[ref];
+      const isN = cell && typeof cell.v==='number';
+      const val = cell ? (cell.w!=null ? cell.w : cell.v) : '';
+      const hit = (ref===r.grossRef) ? ' hit' : '';
+      h += '<td class="'+(isN?'num':'')+hit+'" data-ref="'+ref+'">'+esc(val)+'</td>';
+    }
+    h += '</tr>';
+  }
+  h += '</tbody></table></div><div class="acts"><button class="btn btn-wide" id="g-close">Chiudi</button></div>';
+  b.innerHTML=h; v.appendChild(b);
+  $('#g-close').onclick = () => openDetail(r);
+
+  b.querySelectorAll('td[data-ref]').forEach(td=>{
+    td.onclick = async () => {
+      const ref = td.dataset.ref;
+      if(f.ext!=='xlsx'){ toast(T.patchNoFmt,3800); return; }
+      const cur = td.textContent;
+      const input = prompt('Nuovo valore per '+ref, cur);
+      if(input===null) return;
+      const asNum = parseFloat(String(input).replace(',','.'));
+      const value = (input.trim()!=='' && isFinite(asNum) && String(asNum)===String(input).replace(',','.').trim()) ? asNum : input;
+      busy(true,'Aggiorno il file…');
+      try{
+        const base = (await dbGet('mods', SESSION.id+'::'+r.code))?.buf || f.buf;
+        const out = await patchCell(base, name, ref, value);
+        await dbPut('mods',{id:SESSION.id+'::'+r.code, sessionId:SESSION.id, code:r.code,
+                            name:updName(f.name), buf:out});
+        r.modified = true;
+        if(ref===r.grossRef && typeof value==='number'){ r.grossVal=value; r.weightNew=value; }
+        await dbPut('rows', r);
+        td.textContent = String(value);
+        await reload(); render(); busy(false); toast(T.patchOk);
+      }catch(err){ busy(false); toast(err.message==='cell-missing'?T.patchNoCell:'Modifica non riuscita',4000); }
+    };
+  });
+}
+
+/* =====================================================================
+   EXPORT CUMULATIVO
+   ===================================================================== */
+$('#exportall').onclick = async () => {
+  const mods = await dbBySess('mods', SESSION.id);
+  if(!mods.length){ toast(T.noMods); return; }
+  busy(true, T.zipping);
+  try{
+    const zip = new JSZip();
+    mods.forEach(m=>zip.file(m.name, m.buf));
+    const blob = await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+    const safe = SESSION.label.replace(/[^\w\-. ]+/g,'-');
+    download(blob, 'CLM MODIFICATI '+safe+'.zip');
+    busy(false);
+  }catch(err){ busy(false); toast('Export non riuscito'); }
+};
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+(async function(){
+  try{ await openDB(); await renderSessions(); }
+  catch(err){ alert('Archivio locale non disponibile: '+err); }
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
