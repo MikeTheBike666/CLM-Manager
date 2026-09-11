@@ -1,7 +1,7 @@
 /* CLM Check - service worker
    Caches the app shell and the two libraries so the app runs with no network.
    Bump CACHE when you deploy a new version. */
-const CACHE = 'clmcheck-v2';
+const CACHE = 'clmcheck-v3';
 
 const SHELL = [
   './',

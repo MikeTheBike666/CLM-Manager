@@ -19,7 +19,7 @@
   --tint-todo:rgba(242,178,51,.09);
   --tint-check:rgba(79,184,107,.10);
   --tint-land:rgba(88,166,224,.10);
-  --sticky-w:206px;
+  --sticky-w:214px;
   --safe-t:env(safe-area-inset-top,0px);
   --safe-b:env(safe-area-inset-bottom,0px);
 }
@@ -92,7 +92,14 @@ button{background:none;border:0;cursor:pointer}
 .cnt small{font-size:10px;color:var(--muted);letter-spacing:.1px}
 .cnt.c-todo b{color:var(--amber)} .cnt.c-check b{color:var(--green)}
 .cnt.c-land b{color:var(--blue)} .cnt.c-mod b{color:var(--red)}
-.searchwrap{position:relative;margin-top:9px}
+.searchrow{display:flex;gap:7px;margin-top:9px}
+.searchrow .searchwrap{flex:1}
+#searchnum{
+  flex:0 0 104px;padding:11px 10px;border-radius:9px;background:var(--bg);
+  border:1px solid var(--line);font-size:17px;font-weight:700;text-align:center;letter-spacing:.5px
+}
+#searchnum::placeholder{color:var(--dim);font-size:13px;font-weight:500;letter-spacing:0}
+.searchwrap{position:relative}
 #search{
   width:100%;padding:11px 34px 11px 12px;border-radius:9px;
   background:var(--bg);border:1px solid var(--line);font-size:16px
@@ -144,15 +151,18 @@ button{background:none;border:0;cursor:pointer}
 .wt{font-size:15px;font-weight:650;color:var(--amber);display:flex;align-items:baseline;gap:4px}
 .wt small{font-size:10px;color:var(--dim);font-weight:600}
 .wt.changed{color:#FF9E9E}
-.fixmain{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px}
-.fixrow{display:flex;align-items:center;gap:8px;height:100%}
+.fixmain{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.fixrow{display:flex;align-items:stretch;gap:6px;height:100%;padding:6px 0}
+.flags{display:flex;gap:4px;flex-wrap:wrap}
 .act{
-  flex:0 0 52px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;
-  font-size:22px;font-weight:800;border:1.5px solid
+  flex:0 0 44px;align-self:stretch;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:19px;font-weight:800;border:1.5px solid var(--line);
+  background:rgba(255,255,255,.03);color:var(--dim)
 }
-.act.go{background:rgba(79,184,107,.18);border-color:var(--green);color:var(--green)}
-.act.ship{background:rgba(88,166,224,.18);border-color:var(--blue);color:var(--blue)}
-.act.done{background:transparent;border-color:var(--line);color:var(--dim);font-size:15px}
+.act.on{background:rgba(79,184,107,.2);border-color:var(--green);color:var(--green)}
+.act.paper.on{background:rgba(242,178,51,.18);border-color:var(--amber);color:var(--amber)}
+.act.ship{flex:0 0 94px;background:rgba(88,166,224,.18);border-color:var(--blue);color:var(--blue);font-size:22px}
+.act.undo{flex:0 0 94px;border-color:var(--line);color:var(--dim);font-size:16px}
 .act:active{transform:scale(.93)}
 .wt.editable{text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
 .wt s{color:var(--dim);font-size:11px;font-weight:500}
@@ -246,7 +256,7 @@ table.grid td:active{background:rgba(88,166,224,.22)}
 
 <!-- ============ SESSIONS ============ -->
 <section id="screen-sessions" class="screen on">
-  <div class="brand"><h1>CLM Manager</h1><span>v1.1</span></div>
+  <div class="brand"><h1>CLM Manager</h1><span>v1.2</span></div>
   <p class="lead">Verifica dei pallet in sbarco. Ogni giornata resta separata dalle altre: i dati non si mescolano mai.</p>
   <div id="sesslist"></div>
   <button class="btn btn-primary btn-wide" id="newsess">+ Nuova giornata</button>
@@ -268,9 +278,12 @@ table.grid td:active{background:rgba(88,166,224,.22)}
       <div class="cnt c-land"><b id="n-land">0</b><small>SBARCATI</small></div>
       <div class="cnt c-mod"><b id="n-mod">0</b><small>MODIFICATI</small></div>
     </div>
-    <div class="searchwrap">
-      <input id="search" type="search" placeholder="Cerca: numero, nome, reparto, destinazione, peso" autocomplete="off">
-      <button id="clearsearch" class="hide">✕</button>
+    <div class="searchrow">
+      <input id="searchnum" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="N° pallet" autocomplete="off">
+      <div class="searchwrap">
+        <input id="search" type="search" placeholder="Cerca reparto, nome, destinazione" autocomplete="off">
+        <button id="clearsearch" class="hide">✕</button>
+      </div>
     </div>
     <div class="chips" id="chips"></div>
     <div class="hint" id="hint"></div>
@@ -303,8 +316,11 @@ const T = {
   confirmDelete:s=>`Eliminare la giornata «${s}» e tutti i suoi dati?`,
   bandTodo:"DA VERIFICARE", bandCheck:"VERIFICATI", bandLand:"SBARCATI",
   nothing:"Nessun pallet corrisponde alla ricerca.",
-  hintRow:"Tocca ✓ per confermare · tocca il peso per correggerlo · tocca la riga per il dettaglio",
+  hintRow:"📄 CLM cartaceo · ✓ presenza e peso · la riga scende tra i verificati solo con entrambe",
   checked:"Verificato", landed:"Sbarcato", undo:"Stato riportato indietro",
+  paperOn:"CLM cartaceo presente", paperOff:"CLM cartaceo tolto",
+  wOn:"Peso confermato", wOff:"Conferma peso tolta",
+  needBoth:"Manca ancora una spunta",
   undoAsk:"Riportare indietro lo stato di questo pallet?",
   weightSaved:"Peso aggiornato",
   patchOk:"Copia modificata pronta all'export",
@@ -363,7 +379,7 @@ const dbDel = (s,k) => new Promise((res,rej)=>{ const r=tx(s,'readwrite').delete
 
 /* ---------- state ---------- */
 let SESSION=null, ROWS=[], FILEIDX=new Set(), MODIDX=new Set();
-let query='', filters={status:null, category:null, wh:null, fin:null};
+let query='', qnum='', filters={status:null, category:null, wh:null, fin:null};
 
 /* =====================================================================
    PARSING — landing chart
@@ -573,7 +589,7 @@ async function openSession(id){
   $('#sesstitle').textContent = SESSION.label;
   $('#screen-sessions').classList.remove('on');
   $('#screen-list').classList.add('on');
-  query=''; $('#search').value=''; $('#clearsearch').classList.add('hide');
+  query=''; qnum=''; $('#search').value=''; $('#searchnum').value=''; $('#clearsearch').classList.add('hide');
   filters={status:null,category:null,wh:null,fin:null};
   buildChips(); $('#hint').textContent=T.hintRow; render();
 }
@@ -636,7 +652,8 @@ function buildChips(){
   add('Verificati', filters.status==='checked', ()=>tog('status','checked'));
   add('Sbarcati', filters.status==='landed', ()=>tog('status','landed'));
   add('Modificati', filters.status==='mod', ()=>tog('status','mod'), 'k-mod');
-  add('Senza CLM', filters.status==='nofile', ()=>tog('status','nofile'));
+  add('Senza CLM file', filters.status==='nofile', ()=>tog('status','nofile'));
+  add('Senza CLM cartaceo', filters.status==='nopaper', ()=>tog('status','nopaper'));
   uniq('category').forEach(v=>add(v, filters.category===v, ()=>tog('category',v)));
   uniq('wh').forEach(v=>add(v, filters.wh===v, ()=>tog('wh',v)));
   uniq('fin').forEach(v=>add(v, filters.fin===v, ()=>tog('fin',v)));
@@ -649,8 +666,12 @@ $('#search').oninput = e => {
   render();
 };
 $('#clearsearch').onclick = () => { query=''; $('#search').value=''; $('#clearsearch').classList.add('hide'); render(); };
+$('#searchnum').oninput = e => { qnum = e.target.value.replace(/\D/g,''); e.target.value=qnum; render(); };
 
 function effWeight(r){ return r.weightNew!=null ? r.weightNew : r.gross; }
+// compatibilità con le righe salvate prima della v1.2
+function paperOk(r){ return r.paperOk!=null ? !!r.paperOk : (r.status!=='todo'); }
+function weightOk(r){ return r.weightOk!=null ? !!r.weightOk : (r.status!=='todo'); }
 function hasFile(r){ return FILEIDX.has(SESSION.id+'::'+r.code); }
 
 function match(r){
@@ -659,7 +680,9 @@ function match(r){
   if(filters.fin && String(r.fin)!==filters.fin) return false;
   if(filters.status==='mod' && !r.modified) return false;
   if(filters.status==='nofile' && hasFile(r)) return false;
+  if(filters.status==='nopaper' && paperOk(r)) return false;
   if(['todo','checked','landed'].includes(filters.status) && r.status!==filters.status) return false;
+  if(qnum && !String(r.code).includes(qnum)) return false;
   if(!query) return true;
   const hay = [r.code, r.clmName, r.category, r.wh, r.fin, r.unit, r.ship, r.note, r.userNote,
                fmtW(effWeight(r)), fmtW(r.gross), fmtDate(r.offdate)].join(' ').toLowerCase();
@@ -700,24 +723,36 @@ function rowEl(r,key){
   const main=el('div','fixmain');
   const cl=el('div','codeline');
   const c=el('div','code'); c.textContent=r.code; cl.appendChild(c);
-  if(!hasFile(r)){ const f=el('span','flag nofile'); f.textContent='NO CLM'; cl.appendChild(f); }
-  if(r.modified){ const f=el('span','flag upd'); f.textContent='UPD'; cl.appendChild(f); }
-  main.appendChild(cl);
   const wt=el('div','wt editable'+(changed?' changed':''));
-  wt.innerHTML = esc(fmtW(w))+' <small>kg</small>'+(changed?' <s>'+esc(fmtW(r.gross))+'</s>':'');
+  wt.innerHTML = esc(fmtW(w))+' <small>kg</small>';
   wt.onclick = ev => { ev.stopPropagation(); editWeight(r); };
-  main.appendChild(wt);
+  cl.appendChild(wt);
+  main.appendChild(cl);
+  const fl=el('div','flags');
+  if(!hasFile(r)){ const f=el('span','flag nofile'); f.textContent='NO CLM'; fl.appendChild(f); }
+  if(r.modified){ const f=el('span','flag upd'); f.textContent='UPD'; fl.appendChild(f); }
+  if(changed){ const f=el('span','flag upd'); f.textContent='era '+fmtW(r.gross); fl.appendChild(f); }
+  if(fl.children.length) main.appendChild(fl);
   fr.appendChild(main);
 
-  const act=el('button','act '+(r.status==='todo'?'go':r.status==='checked'?'ship':'done'));
-  act.textContent = r.status==='todo' ? '✓' : r.status==='checked' ? '⇥' : '↩';
-  act.onclick = async ev => {
-    ev.stopPropagation();
-    if(r.status==='todo')        { await setState(r,'checked'); toast('Pallet '+r.code+' verificato',1400); }
-    else if(r.status==='checked'){ await setState(r,'landed');  toast('Pallet '+r.code+' sbarcato',1400); }
-    else                         { await undoState(r); }
-  };
-  fr.appendChild(act);
+  if(key==='todo'){
+    const bp=el('button','act paper'+(paperOk(r)?' on':''));
+    bp.textContent='📄'; bp.title='CLM cartaceo';
+    bp.onclick = async ev => { ev.stopPropagation(); await togglePaper(r); };
+    fr.appendChild(bp);
+    const bw=el('button','act'+(weightOk(r)?' on':''));
+    bw.textContent='✓'; bw.title='Presenza e peso';
+    bw.onclick = async ev => { ev.stopPropagation(); await toggleWeight(r); };
+    fr.appendChild(bw);
+  } else if(key==='checked'){
+    const b=el('button','act ship'); b.textContent='⇥';
+    b.onclick = async ev => { ev.stopPropagation(); await goLanded(r); };
+    fr.appendChild(b);
+  } else {
+    const b=el('button','act undo'); b.textContent='↩';
+    b.onclick = async ev => { ev.stopPropagation(); await undoState(r); };
+    fr.appendChild(b);
+  }
   fix.appendChild(fr);
   d.appendChild(fix);
 
@@ -756,19 +791,37 @@ function rowEl(r,key){
 /* =====================================================================
    STATI
    ===================================================================== */
-async function setState(r, status){
-  r.status = status;
-  r.order = Date.now();
-  if(status==='checked') r.checkedAt = Date.now();
-  if(status==='landed')  r.landedAt  = Date.now();
+async function refreshStatus(r){
+  if(r.status!=='landed'){
+    const both = !!r.paperOk && !!r.weightOk;
+    if(both && r.status!=='checked'){ r.status='checked'; r.order=Date.now(); r.checkedAt=Date.now(); }
+    else if(!both && r.status!=='todo'){ r.status='todo'; r.checkedAt=null; }
+  }
   await dbPut('rows', r);
   await reload(); render();
 }
+async function togglePaper(r){
+  r.paperOk = !paperOk(r);
+  if(r.weightOk==null) r.weightOk = weightOk(r);
+  await refreshStatus(r);
+  toast(r.paperOk ? T.paperOn : T.paperOff, 1300);
+}
+async function toggleWeight(r){
+  r.weightOk = !weightOk(r);
+  if(r.paperOk==null) r.paperOk = paperOk(r);
+  await refreshStatus(r);
+  toast(r.weightOk ? T.wOn : T.wOff, 1300);
+}
+async function goLanded(r){
+  r.status='landed'; r.order=Date.now(); r.landedAt=Date.now();
+  await dbPut('rows', r); await reload(); render();
+  toast('Pallet '+r.code+' sbarcato', 1400);
+}
 async function undoState(r){
-  if(r.status==='todo') return;
+  if(r.status==='todo' && !paperOk(r) && !weightOk(r)) return;
   if(!confirm(T.undoAsk)) return;
   if(r.status==='landed'){ r.status='checked'; r.landedAt=null; }
-  else { r.status='todo'; r.checkedAt=null; }
+  else { r.paperOk=false; r.weightOk=false; r.status='todo'; r.checkedAt=null; }
   await dbPut('rows', r); await reload(); render();
   toast(T.undo);
 }
@@ -817,6 +870,7 @@ function openDetail(r){
         + kv('Note dal chart', r.note)
         + kv('File CLM', r.fileName || '—')
         + kv('Peso letto in', r.grossRef ? (r.sheet+'!'+r.grossRef) : '—')
+        + kv('CLM cartaceo', paperOk(r) ? 'presente' : 'NON confermato')
         + kv('Verificato', r.checkedAt ? new Date(r.checkedAt).toLocaleString('it-IT') : '—')
         + kv('Sbarcato', r.landedAt ? new Date(r.landedAt).toLocaleString('it-IT') : '—');
 
@@ -824,7 +878,12 @@ function openDetail(r){
   html += '<textarea id="unote" rows="2" placeholder="Es. imballo danneggiato">'+esc(r.userNote||'')+'</textarea>';
 
   html += '<div class="acts">';
-  if(r.status==='todo')    html += '<button class="btn btn-green btn-wide" id="a-check">✓ Conferma</button>';
+  if(r.status!=='landed'){
+    html += '<div class="two">';
+    html += '<button class="btn'+(paperOk(r)?' btn-primary':'')+'" id="a-paper">📄 '+(paperOk(r)?'CLM cartaceo OK':'CLM cartaceo')+'</button>';
+    html += '<button class="btn'+(weightOk(r)?' btn-green':'')+'" id="a-w">✓ '+(weightOk(r)?'Peso OK':'Conferma peso')+'</button>';
+    html += '</div>';
+  }
   if(r.status==='checked') html += '<button class="btn btn-blue btn-wide" id="a-land">⇥ Sbarcato</button>';
   if(r.status!=='todo')    html += '<button class="btn btn-ghost btn-wide" id="a-undo">Riporta indietro lo stato</button>';
   html += '<div class="two">';
@@ -841,8 +900,9 @@ function openDetail(r){
   $('#unote').onchange = async e => { r.userNote = e.target.value; await dbPut('rows', r); render(); };
   $('#wtap').onclick = () => editWeight(r);
   const on=(id,fn)=>{ const b=$('#'+id); if(b) b.onclick=fn; };
-  on('a-check', async()=>{ closeVeil(); await setState(r,'checked'); toast(T.checked); });
-  on('a-land',  async()=>{ closeVeil(); await setState(r,'landed');  toast(T.landed); });
+  on('a-paper', async()=>{ await togglePaper(r); openDetail(ROWS.find(x=>x.code===r.code)||r); });
+  on('a-w',     async()=>{ await toggleWeight(r); openDetail(ROWS.find(x=>x.code===r.code)||r); });
+  on('a-land',  async()=>{ closeVeil(); await goLanded(r); });
   on('a-undo',  async()=>{ closeVeil(); await undoState(r); });
   on('a-grid',  ()=>openGrid(r));
   on('a-excel', async()=>{
